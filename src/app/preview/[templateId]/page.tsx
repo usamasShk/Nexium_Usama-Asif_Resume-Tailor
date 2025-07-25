@@ -3,191 +3,184 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import CosmicParticlesWrapper from '../../components/CosmicParticlesWrapper';
+import { PDFViewer } from '@react-pdf/renderer';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import ModernTemplate from '../../../components/templates/ModernTemplate';
+import MinimalistTemplate from '../../../components/templates/MinimalistTemplate';
+import CreativeTemplate from '../../../components/templates/CreativeTemplate';
+import Logo from '../../../components/Logo';
+import CosmicParticlesWrapper from '../../../components/CosmicParticlesWrapper';
+import { saveAs } from 'file-saver';
+import { Document as DocxDocument, Packer, Paragraph, TextRun } from 'docx';
 
-interface TemplateOption {
-  id: string;
-  name: string;
-  description: string;
-  color: string;
-  features: string[];
+// Add custom styles to hide scrollbars
+const customStyles = `
+  .react-pdf__Page__canvas {
+    max-width: 100%;
+    height: auto !important;
+  }
+  /* Hide scrollbars but keep functionality */
+  .react-pdf__Document {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .react-pdf__Document::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+`;
+
+interface ResumeData {
+  formattedText: string;
 }
 
-const templates: TemplateOption[] = [
-  {
-    id: 'minimalist',
-    name: 'Minimalist Professional',
-    description: 'Clean and modern design perfect for any industry',
-    color: '#2563eb',
-    features: ['Clean Layout', 'Modern Typography', 'ATS Friendly', 'Professional Design']
-  },
-  {
-    id: 'modern',
-    name: 'Modern Blue',
-    description: 'Contemporary design with a professional touch',
-    color: '#3b82f6',
-    features: ['Two-Column Layout', 'Skill Highlights', 'Professional Look', 'Easy to Read']
-  },
-  {
-    id: 'creative',
-    name: 'Creative Purple',
-    description: 'Stand out with a unique and creative design',
-    color: '#8b5cf6',
-    features: ['Unique Layout', 'Color Accents', 'Modern Style', 'Eye-catching Design']
-  }
-];
-
-export default function SelectTemplatePage() {
+export default function PreviewPage({ params }: { params: { templateId: string } }) {
   const router = useRouter();
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [hoveredTemplate, setHoveredTemplate] = useState<string | null>(null);
+  const [resumeData, setResumeData] = useState<ResumeData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // Check if we have the necessary data
       const tailoredContent = localStorage.getItem('tailoredContent');
-      const job = localStorage.getItem('job');
-      
-      if (!tailoredContent || !job) {
+      if (!tailoredContent) {
         router.push('/resume');
         return;
+      }
+      try {
+        const parsedData = JSON.parse(tailoredContent);
+        if (!parsedData || !parsedData.formattedText) {
+          throw new Error('Invalid resume data format');
+        }
+        setResumeData(parsedData);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error parsing resume data:', error);
+        alert('Error preparing resume. Please try again.');
+        router.push('/resume');
       }
     }
   }, [router]);
 
-  const handleTemplateSelect = (templateId: string) => {
-    setSelectedTemplate(templateId);
-    if (typeof window !== "undefined") {
-      // Store selected template
-      localStorage.setItem('selectedTemplate', templateId);
-      // Navigate to preview page after a short delay
-      setTimeout(() => {
-        router.push(`/preview/${templateId}`);
-      }, 100);
+  const getTemplate = () => {
+    if (!resumeData) {
+      return <ModernTemplate formattedText="" />;
+    }
+
+    switch (params.templateId) {
+      case 'modern':
+        return <ModernTemplate formattedText={resumeData.formattedText} />;
+      case 'minimalist':
+        return <MinimalistTemplate formattedText={resumeData.formattedText} />;
+      case 'creative':
+        return <CreativeTemplate formattedText={resumeData.formattedText} />;
+      default:
+        return <ModernTemplate formattedText={resumeData.formattedText} />;
     }
   };
 
-  return (
-    <main className="min-h-screen bg-transparent relative z-10 flex flex-col items-center justify-center py-12 px-4">
-      <CosmicParticlesWrapper />
-      <div className="max-w-7xl mx-auto w-full">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
-          <h1 className="text-3xl md:text-4xl font-bold text-[var(--text-light)] mb-4 drop-shadow-glow">
-            Choose Your Resume Template
-          </h1>
-          <p className="text-[var(--accent)] max-w-2xl mx-auto">
-            Select from our professionally designed templates. Each template is optimized for ATS systems
-            and crafted to help you stand out from the crowd.
-          </p>
-        </motion.div>
+  // Helper to download as Word
+  const handleDownloadWord = () => {
+    if (!resumeData?.formattedText) return;
+    const sections = resumeData.formattedText.split('\n\n').filter(Boolean).map(section => {
+      const lines = section.split('\n').filter(line => line.trim());
+      const title = lines[0];
+      const content = lines.slice(1);
+      return { title, content };
+    });
+    const doc = new DocxDocument({
+      sections: [
+        {
+          properties: {},
+          children: sections.flatMap(section => [
+            new Paragraph({
+              children: [new TextRun({ text: section.title, bold: true, size: 28 })],
+              spacing: { after: 120 },
+            }),
+            ...section.content.map(line =>
+              new Paragraph({
+                children: [new TextRun({ text: line, size: 24 })],
+                spacing: { after: 60 },
+              })
+            ),
+            new Paragraph('')
+          ])
+        }
+      ]
+    });
+    Packer.toBlob(doc).then(blob => {
+      saveAs(blob, 'resume.docx');
+    });
+  };
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {templates.map((template, index) => (
-            <motion.div
-              key={template.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="group relative cursor-pointer"
-              onMouseEnter={() => setHoveredTemplate(template.id)}
-              onMouseLeave={() => setHoveredTemplate(null)}
-              onClick={() => handleTemplateSelect(template.id)}
-            >
-              <div 
-                className={`main-card max-w-lg rounded-xl shadow-lg overflow-hidden transition-all duration-300 text-black ${hoveredTemplate === template.id ? 'transform scale-[1.02] shadow-2xl' : ''}`}
-                style={{ backgroundColor: '#fff', background: '#fff' }}
-              >
-                {/* Template Preview */}
-                <div className="relative h-[300px] w-full text-black" style={{ backgroundColor: '#fff', background: '#fff' }}>
-                  {/* Removed gradient/overlay, solid white background only */}
-                  <div className="absolute inset-0 flex items-center justify-center p-8 text-black" style={{ backgroundColor: '#fff', background: '#fff' }}>
-                    <div className="w-full h-full border-2 border-gray-200 rounded-lg text-black shadow-lg" style={{ backgroundColor: '#fff', background: '#fff' }}>
-                      {/* Template Preview Content */}
-                      <div className="h-full p-4 flex flex-col">
-                        <div className="border-b-2" style={{ borderColor: template.color }}>
-                          <div className="text-lg font-bold mb-2">Professional Resume</div>
-                          <div className="text-sm text-gray-600 mb-4">Software Developer</div>
-                        </div>
-                        <div className="flex-1 flex gap-4 mt-4">
-                          <div className="flex-[2]">
-                            <div className="text-xs font-bold mb-2" style={{ color: template.color }}>EXPERIENCE</div>
-                            <div className="text-xs text-gray-600">• Senior Developer</div>
-                            <div className="text-xs text-gray-600">• Full Stack Engineer</div>
-                          </div>
-                          <div className="flex-1">
-                            <div className="text-xs font-bold mb-2" style={{ color: template.color }}>SKILLS</div>
-                            <div className="flex flex-wrap gap-1">
-                              {['React', 'Node.js', 'Python'].map((skill) => (
-                                <span
-                                  key={skill}
-                                  className="text-[10px] px-2 py-1 rounded"
-                                  style={{ 
-                                    backgroundColor: `${template.color}22`,
-                                    color: template.color
-                                  }}
-                                >
-                                  {skill}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Removed hover overlay for a clean white background */}
-                </div>
-
-                {/* Template Info */}
-                <div className="p-6">
-                  <h3 className="text-xl font-semibold text-[var(--text-light)] mb-2">
-                    {template.name}
-                  </h3>
-                  <p className="text-[var(--accent)] mb-4">{template.description}</p>
-                  
-                  {/* Features */}
-                  <div className="flex flex-wrap gap-2">
-                    {template.features.map((feature, i) => (
-                      <span
-                        key={i}
-                        className="text-xs px-2 py-1 rounded-full"
-                        style={{ 
-                          backgroundColor: `${template.color}22`,
-                          color: template.color,
-                        }}
-                      >
-                        {feature}
-                      </span>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => handleTemplateSelect(template.id)}
-                    className="bg-[var(--accent)] text-white px-6 py-3 rounded-full font-semibold mt-4 w-full hover:bg-opacity-90 transition"
-                  >
-                    Use This Template
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-[var(--primary-bg)]">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[var(--accent)]">Preparing your resume...</p>
         </div>
+      </main>
+    );
+  }
 
-        {/* Bottom Info */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-12 text-center"
-        >
-          <p className="text-[var(--accent)] text-sm">
-            All templates are ATS-friendly and optimized for maximum readability
-          </p>
-        </motion.div>
+  return (
+    <main className="min-h-screen bg-black" style={{ position: 'relative' }}>
+      <CosmicParticlesWrapper />
+      <style jsx global>{customStyles}</style>
+      
+      {/* Header */}
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          <Logo />
+          <div className="flex gap-4">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              onClick={() => router.push('/select-template')}
+              className="px-4 py-2 text-[var(--accent)] border border-[var(--accent)] rounded-lg hover:bg-[var(--accent)]/10 transition"
+            >
+              Change Template
+            </motion.button>
+            <PDFDownloadLink
+              document={getTemplate()}
+              fileName="resume.pdf"
+            >
+              {({ loading }) => (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent)]/90 transition"
+                >
+                  {loading ? 'Preparing PDF...' : 'Download PDF'}
+                </motion.button>
+              )}
+            </PDFDownloadLink>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg hover:bg-[var(--accent)]/90 transition"
+              onClick={handleDownloadWord}
+            >
+              Download as Word
+            </motion.button>
+          </div>
+        </div>
+      </div>
+
+      {/* PDF Preview */}
+      <div className="w-full h-[calc(100vh-80px)] flex items-center justify-center relative z-10" style={{ background: 'none' }}>
+        <div className="w-full max-w-5xl h-full bg-white rounded-lg overflow-hidden flex items-center justify-center" style={{ boxShadow: '0 0 0 0 transparent', background: 'white', position: 'relative', zIndex: 10 }}>
+          <PDFViewer
+            style={{
+              width: '100%',
+              height: '100%',
+              border: 'none',
+              backgroundColor: 'white',
+              borderRadius: '0.5rem',
+              overflow: 'hidden',
+              color: 'black'
+            }}
+            showToolbar={false}
+          >
+            {getTemplate()}
+          </PDFViewer>
+        </div>
       </div>
     </main>
   );
