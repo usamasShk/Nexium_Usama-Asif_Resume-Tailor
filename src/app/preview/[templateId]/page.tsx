@@ -39,28 +39,30 @@ export default function PreviewPage({ params }: { params: { templateId: string }
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if we have all necessary data
-    const tailoredContent = localStorage.getItem('tailoredContent');
-    if (!tailoredContent) {
-      router.push('/resume');
-      return;
-    }
-
-    try {
-      // Parse the tailored content
-      const parsedData = JSON.parse(tailoredContent) as ResumeData;
-      
-      // Validate the data structure
-      if (!parsedData || !parsedData.formattedText) {
-        throw new Error('Invalid resume data format');
+    if (typeof window !== "undefined") {
+      // Check if we have all necessary data
+      const tailoredContent = localStorage.getItem('tailoredContent');
+      if (!tailoredContent) {
+        router.push('/resume');
+        return;
       }
 
-      setResumeData(parsedData);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error parsing resume data:', error);
-      alert('Error preparing resume. Please try again.');
-      router.push('/resume');
+      try {
+        // Parse the tailored content
+        const parsedData = JSON.parse(tailoredContent) as ResumeData;
+        
+        // Validate the data structure
+        if (!parsedData || !parsedData.formattedText) {
+          throw new Error('Invalid resume data format');
+        }
+
+        setResumeData(parsedData);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error parsing resume data:', error);
+        alert('Error preparing resume. Please try again.');
+        router.push('/resume');
+      }
     }
   }, [router]);
 
