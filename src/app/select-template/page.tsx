@@ -45,10 +45,10 @@ export default function SelectTemplatePage() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       // Check if we have the necessary data
-      const resume = localStorage.getItem('resume');
-      const jobDescription = localStorage.getItem('jobDescription');
+      const tailoredContent = localStorage.getItem('tailoredContent');
+      const job = localStorage.getItem('job');
       
-      if (!resume || !jobDescription) {
+      if (!tailoredContent || !job) {
         router.push('/resume');
         return;
       }
