@@ -14,7 +14,6 @@ export default function JobPage() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // Check if we have resume file data
       const resumeFile = localStorage.getItem("resumeFile");
       if (!resumeFile) {
         router.push("/resume");
