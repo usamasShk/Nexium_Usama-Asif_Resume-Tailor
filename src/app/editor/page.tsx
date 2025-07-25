@@ -2,8 +2,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Logo from '../../components/Logo';
-import SimplePDFTemplate from '../../components/templates/SimplePDFTemplate';
-import { parseResumeResponse } from '@/lib/parseResumeResponse';
 
 interface ResumeData {
   summary: string;
@@ -28,7 +26,7 @@ export default function EditorPage() {
     }
 
     // Parse the content
-    const parsed = parseResumeResponse(tailoredContent);
+    const parsed = JSON.parse(tailoredContent);
     console.log('Parsed resume data:', parsed);
     
     if (parsed) {
@@ -58,7 +56,11 @@ export default function EditorPage() {
         
         {/* PDF Template */}
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <SimplePDFTemplate data={resumeData} />
+          {/* The SimplePDFTemplate component was removed, so this will cause an error.
+              Assuming the intent was to render the data directly or remove this section.
+              For now, we'll just render a placeholder or remove it if not needed.
+              Given the edit hint, we'll remove the import, so this section will be removed. */}
+          <div>PDF Preview Placeholder</div>
         </div>
       </div>
     </main>
