@@ -35,12 +35,16 @@ export default function ResumePage() {
       // Store the file in localStorage for the next page
       const fileReader = new FileReader();
       fileReader.onload = function() {
-        localStorage.setItem("resumeFile", JSON.stringify({
-          name: file.name,
-          type: file.type,
-          data: fileReader.result
-        }));
-        router.push("/job");
+        if (typeof window !== "undefined") {
+          localStorage.setItem("resumeFile", JSON.stringify({
+            name: file.name,
+            type: file.type,
+            data: fileReader.result
+          }));
+          setTimeout(() => {
+            router.push("/job");
+          }, 100);
+        }
       };
       fileReader.readAsDataURL(file);
     } catch (error) {
