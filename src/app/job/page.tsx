@@ -13,10 +13,12 @@ export default function JobPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Check if we have resume file data
-    const resumeFile = localStorage.getItem("resumeFile");
-    if (!resumeFile) {
-      router.push("/resume");
+    if (typeof window !== "undefined") {
+      // Check if we have resume file data
+      const resumeFile = localStorage.getItem("resumeFile");
+      if (!resumeFile) {
+        router.push("/resume");
+      }
     }
   }, [router]);
 
@@ -39,10 +41,13 @@ export default function JobPage() {
 
       const response = await sendToN8nWebhook(file, job);
       if (response?.formattedText) {
-        localStorage.setItem('tailoredContent', JSON.stringify(response));
-        localStorage.setItem('job', job);
-        // Redirect immediately to template selection
-        router.push("/select-template");
+        if (typeof window !== "undefined") {
+          localStorage.setItem('tailoredContent', JSON.stringify(response));
+          localStorage.setItem('job', job);
+          setTimeout(() => {
+            router.push("/select-template");
+          }, 100);
+        }
       } else {
         throw new Error("Failed to get tailored resume content");
       }
