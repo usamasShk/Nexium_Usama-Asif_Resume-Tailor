@@ -43,22 +43,28 @@ export default function SelectTemplatePage() {
   const [hoveredTemplate, setHoveredTemplate] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if we have the necessary data
-    const resume = localStorage.getItem('resume');
-    const jobDescription = localStorage.getItem('jobDescription');
-    
-    if (!resume || !jobDescription) {
-      router.push('/resume');
-      return;
+    if (typeof window !== "undefined") {
+      // Check if we have the necessary data
+      const resume = localStorage.getItem('resume');
+      const jobDescription = localStorage.getItem('jobDescription');
+      
+      if (!resume || !jobDescription) {
+        router.push('/resume');
+        return;
+      }
     }
   }, [router]);
 
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplate(templateId);
-    // Store selected template
-    localStorage.setItem('selectedTemplate', templateId);
-    // Navigate to preview page
-    router.push(`/preview/${templateId}`);
+    if (typeof window !== "undefined") {
+      // Store selected template
+      localStorage.setItem('selectedTemplate', templateId);
+      // Navigate to preview page after a short delay
+      setTimeout(() => {
+        router.push(`/preview/${templateId}`);
+      }, 100);
+    }
   };
 
   return (
